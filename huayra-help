@@ -1,11 +1,16 @@
 #!/usr/bin/env python
 
+import os
 import re
 import subprocess as sp
 import ConfigParser
 
 cfg = ConfigParser.ConfigParser()
-cfg.read('huayra-help.cfg')
+if not os.path.isfile('/usr/share/huayra-help/huayra-help.cfg'):
+    cfg.read('./huayra-help.cfg')
+else:
+    cfg.read('./huayra-help.cfg')
+
 
 pages_by_cat_dict = dict([(key, cfg.get("pages",key))
                           for key in cfg.options('pages')])
