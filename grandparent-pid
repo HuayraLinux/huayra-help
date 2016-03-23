@@ -1,0 +1,4 @@
+#!/bin/sh
+
+PARENT=`ps -o ppid= -p $1`;
+ps -o ppid= -p $PARENT;
