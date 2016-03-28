@@ -6,8 +6,13 @@ para reconocer que aplicacion tiene el foco al invocar la ayuda.
 
 import os
 import re
+import argparse
 import subprocess as sp
 import ConfigParser
+
+VERSION = "0.1"
+HUAYRA_VISOR_MANUAL = "/usr/bin/huayra-visor-manual"
+DEBUG = False
 
 cfg = ConfigParser.ConfigParser()
 if os.path.isfile('/usr/share/huayra-help/huayra-help.cfg'):
@@ -20,9 +25,10 @@ pages_by_cat_dict = dict([(key, cfg.get("pages",key))
 cat_by_app_dict = dict([(key, map(lambda l: l.strip(), cfg.get("apps",key).split(",")))
                         for key in cfg.options('apps')])
 
-HUAYRA_VISOR_MANUAL = "/usr/bin/huayra-visor-manual"
-DEBUG = False
 
+def version():
+    "shows the current version"
+    print VERSION
 
 def xprop(flag):
     return sp.check_output("xprop {}".format(flag), shell=True)
@@ -118,4 +124,13 @@ def main():
             sp.call([HUAYRA_VISOR_MANUAL, help_page])
 
 if __name__ == "__main__":
-   main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-v', '--version',
+                        action="store_true",
+                        help=version.__doc__)
+    args = parser.parse_args()
+
+    if args.version:
+        version()
+    else:
+        main()
