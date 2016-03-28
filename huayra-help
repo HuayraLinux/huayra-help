@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+Aplicacion 'basica' que trabaja en conjunto con `huayra-visor-manual`
+para reconocer que aplicacion tiene el foco al invocar la ayuda.
+"""
 
 import os
 import re
@@ -6,11 +10,10 @@ import subprocess as sp
 import ConfigParser
 
 cfg = ConfigParser.ConfigParser()
-if not os.path.isfile('/usr/share/huayra-help/huayra-help.cfg'):
-    cfg.read('./huayra-help.cfg')
+if os.path.isfile('/usr/share/huayra-help/huayra-help.cfg'):
+    cfg.read('/usr/share/huayra-help/huayra-help.cfg')
 else:
-    cfg.read('./huayra-help.cfg')
-
+    cfg.read(os.path.join(os.path.dirname(__file__),'huayra-help.cfg'))
 
 pages_by_cat_dict = dict([(key, cfg.get("pages",key))
                           for key in cfg.options('pages')])
@@ -18,11 +21,15 @@ cat_by_app_dict = dict([(key, map(lambda l: l.strip(), cfg.get("apps",key).split
                         for key in cfg.options('apps')])
 
 HUAYRA_VISOR_MANUAL = "/usr/bin/huayra-visor-manual"
+DEBUG = False
 
+
+def xprop(flag):
+    return sp.check_output("xprop {}".format(flag), shell=True)
 
 def get_window_id():
     window_id = None
-    output = sp.check_output("xprop -root", shell=True)
+    output = xprop("-root")
     active_window = filter(lambda l: l.startswith("_NET_ACTIVE_WINDOW"), output.split("\n"))
     if active_window:
         window_id = re.findall("0x.[^']*", active_window[0])[0]
@@ -34,10 +41,11 @@ def get_window_class(id):
     window_class = None
     if id:
         window_class = None
-        output = sp.check_output("xprop -id {0}".format(id), shell=True)
+        output = xprop("-id {0}".format(id))
         wm_class = filter(lambda l: l.startswith("WM_CLASS"), output.split("\n"))
         if wm_class:
-           window_class = re.findall(".* = (.*)", wm_class[0])[0]
+           #window_class = re.findall(".* = (.*)", wm_class[0])[0]
+           window_class = re.findall(".* = (.*)", wm_class[0])[0].replace('"', '').replace(", ",".")
 
     return window_class
 
@@ -46,8 +54,8 @@ def get_window_title(id):
     window_class = None
     if id:
         window_title = None
-        output = sp.check_output("xprop -id {0}".format(id), shell=True)
-        wm_title = filter(lambda l: l.startswith("_NET_WM_NAME(UTF8_STRING)"), output.split("\n"))
+        output = xprop("-id {0}".format(id))
+        wm_title = filter(lambda l: l.startswith("_NET_WM_NAME"), output.split("\n"))
         if wm_title:
            window_title = re.findall(".* = (.*)", wm_title[0])[0].replace('"', '')
 
@@ -66,9 +74,8 @@ quitarme la poca vida que me quedaba disponible en un dia Lunes, gris, como el d
         for cat in cat_by_app_dict:
             for key in cat_by_app_dict[cat]:
                 test_app = filter(lambda c: key in c, cls)
-                if len( test_app ) > 0:
+                if len( test_app ):
                     url = pages_by_cat_dict[cat]
-                    print key, cat
                     break
 
     return url
@@ -93,11 +100,22 @@ def main():
     help_page_class = get_page_by_class(window_class)
     help_page_title = get_page_by_title(window_title)
 
-    if not help_page_class and not help_page_title:
-        sp.call([HUAYRA_VISOR_MANUAL])
+    if DEBUG:
+        print window_id
+        print window_class
+        print window_title
+        pages = filter(lambda p: p, [help_page_class, help_page_title])[0]
+        print pages
+
+        with open('/tmp/huayra-help.log', 'w') as f:
+            f.write(" | ".join([window_id, window_class,window_title,pages]))
+        f.closed
     else:
-        help_page = filter(lambda p: p, [help_page_class, help_page_title])[0]
-        sp.call([HUAYRA_VISOR_MANUAL, help_page])
+        if not help_page_class and not help_page_title:
+            sp.call([HUAYRA_VISOR_MANUAL])
+        else:
+            help_page = filter(lambda p: p, [help_page_class, help_page_title])[0]
+            sp.call([HUAYRA_VISOR_MANUAL, help_page])
 
 if __name__ == "__main__":
    main()
