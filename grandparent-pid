@@ -1,7 +1,0 @@
-#!/bin/sh
-
-# Helper/hack para obtener el PID del proceso padre
-# del proceso padre que estamos ejecutando.
-
-PARENT=`ps -o ppid= -p $1`;
-ps -o ppid= -p $PARENT;
